@@ -35,21 +35,10 @@ import java.io.IOException;
 public class DemoDataController {
     private final DemoService demoService;
 
-    @RequestMapping(value = "/api/vp-offer-refresh-call", method = RequestMethod.POST)
-    @ResponseBody
-    public VpResultDto vpOfferRefresh() throws IOException, WriterException {
-        return demoService.vpOfferRefresh();
-    }
-
     @RequestMapping(value = "/api/vc-offer-refresh-call", method = RequestMethod.POST)
     @ResponseBody
     public VcResultDto vcOfferRefresh() throws IOException, WriterException {
         return demoService.vcOfferRefresh();
-    }
-    @RequestMapping(value = "/api/vc-offer-submit", method = RequestMethod.POST)
-    @ResponseBody
-    public RequestVcSubmitResDto vcOfferSubmit(@RequestBody RequestVcSubmitReqDto requestVcSubmitReqDto) {
-        return demoService.vcOfferSubmit(requestVcSubmitReqDto);
     }
     @RequestMapping(value = "/api/vc-offer-push", method = RequestMethod.POST)
     @ResponseBody
@@ -67,12 +56,6 @@ public class DemoDataController {
     @ResponseBody
     public SaveUserInfoResDto saveUserInfo(@RequestBody SaveUserInfoReqDto saveUserInfoReqDto) {
         return demoService.saveUserInfo(saveUserInfoReqDto);
-    }
-
-    @RequestMapping(value = "/api/save-vc-info", method = RequestMethod.POST)
-    @ResponseBody
-    public SaveUserInfoResDto saveVcInfo(@RequestBody SaveVcInfoReqDto saveVcInfoReqDto){
-        return demoService.saveVcInfo(saveVcInfoReqDto);
     }
 
     @RequestMapping(value = "/api/issue-vc-result", method = RequestMethod.POST)
@@ -110,7 +93,16 @@ public class DemoDataController {
         return demoService.getCredentialSchema(credentialSchemaId);
     }
 
+    @RequestMapping(value = "/api/initiate-verification", method = RequestMethod.POST)
+    @ResponseBody
+    public VpResultDto initiateVerification(@RequestBody java.util.Map<String, String> body) throws IOException, com.google.zxing.WriterException {
+        String policyId = body.get("policyId");
+        return demoService.initiateVerification(policyId);
+    }
 
-
-
+    @RequestMapping(value = "/api/verification-status/{sessionId}", method = RequestMethod.GET)
+    @ResponseBody
+    public StatusResponseDto getVerificationStatus(@PathVariable("sessionId") String sessionId) {
+        return demoService.getVerificationStatus(sessionId);
+    }
 }

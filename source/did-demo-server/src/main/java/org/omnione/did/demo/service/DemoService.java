@@ -18,6 +18,7 @@ package org.omnione.did.demo.service;
 
 import com.google.zxing.WriterException;
 import org.omnione.did.demo.dto.*;
+
 import java.io.IOException;
 
 /**
@@ -25,13 +26,10 @@ import java.io.IOException;
  */
 public interface DemoService {
 
-    VpResultDto vpOfferRefresh() throws IOException, WriterException;
     VcResultDto vcOfferRefresh() throws IOException, WriterException;
-    RequestVcSubmitResDto vcOfferSubmit(RequestVcSubmitReqDto requestVcSubmitReqDto);
     VcOfferPushResDto vcOfferPush(RequestVcOfferReqDto requestVcOfferReqDto);
     RequestVcOfferResDto vcOfferEmail(RequestVcOfferReqDto requestVcOfferReqDto);
     SaveUserInfoResDto saveUserInfo(SaveUserInfoReqDto saveUserInfoReqDto);
-    SaveUserInfoResDto saveVcInfo(SaveVcInfoReqDto saveUserInfoReqDto);
     IssueVcResultResDto issueVcResult(IssueVcResultReqDto issueVcResultReqDto);
     ConfirmVerifyResDto confirmVerify(ConfirmVerifyReqDto confirmVerifyReqDto);
     VcSchemaResponseDto getVcSchemas();
@@ -40,4 +38,6 @@ public interface DemoService {
     VcPlanResponseDto getAllVcPlans();
     CredentialSchemaDto getCredentialSchema(String credentialSchemaId);
 
+    VpResultDto initiateVerification(String policyId) throws IOException, WriterException;
+    StatusResponseDto getVerificationStatus(String sessionId);
 }

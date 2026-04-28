@@ -35,3 +35,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Android Wallet (excluded from this repo) ###
+source/did-demo-android-wallet/

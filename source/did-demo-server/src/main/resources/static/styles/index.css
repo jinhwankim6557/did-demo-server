@@ -1615,4 +1615,148 @@ i.icons svg {
   }
 }
 
+/* ─────────────────────────────────────────────────────────
+   VC Issuance 프로토콜 소탭 + OID4VC 신규 UI
+   ───────────────────────────────────────────────────────── */
+.hidden {
+  display: none !important;
+}
+
+.vc-proto-tabs {
+  display: flex !important;
+  gap: 12px;
+  margin: 0 0 20px 0 !important;
+  padding: 6px;
+  background: #f3f5f8;
+  border-radius: 12px;
+}
+
+.vc-proto-tabs .btn-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 18px;
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 9px;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease,
+    border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.vc-proto-tabs .btn-tab:hover {
+  color: #222;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.vc-proto-tabs .btn-tab.active {
+  background: #ffffff;
+  border-color: #ff8400;
+  color: #ff8400;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(255, 132, 0, 0.18);
+}
+
+.vc-proto-panel {
+  margin-top: 16px;
+}
+
+.vc-intro {
+  margin: 0 0 14px 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.proto-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin: -6px 0 18px 0;
+  padding: 12px 14px;
+  background: #fff8f0;
+  border: 1px solid #ffe1bf;
+  border-radius: 10px;
+}
+
+.proto-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  background: #ffffff;
+  border: 1px solid #ffd9b0;
+  border-radius: 999px;
+  color: #5a3a00;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.proto-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: #ff8400;
+  color: #ffffff;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.proto-step-label {
+  white-space: nowrap;
+}
+
+.proto-step-arrow {
+  color: #ff8400;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* OID4VC Issuing 버튼: 단독 배치 시 좌우로 확장 */
+button.btn-primary.btn-wide {
+  max-width: 22rem;
+  width: 100%;
+}
+
+/* OID4VC Transaction Code 박스 (QR 아래, 읽기 전용) */
+.vc-tx-code {
+  margin: 14px 0 8px 0;
+  text-align: center;
+}
+.vc-tx-code label {
+  display: block;
+  font-size: 13px;
+  color: #475569;
+  font-weight: 600;
+  margin-bottom: 6px;
+  letter-spacing: 0.2px;
+}
+.vc-tx-code input {
+  width: 180px;
+  padding: 10px 8px;
+  text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 10px;
+  color: #111;
+  background: #fafbfc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: default;
+}
+.vc-tx-code input:focus {
+  outline: none;
+}
+
 /*# sourceMappingURL=index.css.map */

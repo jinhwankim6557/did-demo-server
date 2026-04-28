@@ -3,7 +3,6 @@ package org.omnione.did.demo.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.omnione.did.base.config.ConfigService;
-import org.omnione.did.base.config.DemoDataConfig;
 import org.omnione.did.demo.dto.ServerSettingsDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -25,12 +24,6 @@ import java.util.Map;
 public class ConfigController {
     private final ConfigService configService;
 
-    @GetMapping
-    public DemoDataConfig getConfig() {
-        return configService.getConfig();
-    }
-
-
     @GetMapping("/vc-plans")
     public ResponseEntity<?> getVcPlan() {
         configService.updateVcPlan();
@@ -47,16 +40,13 @@ public class ConfigController {
     }
     @GetMapping("/vp-policies")
     public ResponseEntity<?> getVpPolicies() {
-        configService.updateVpPolicy();
+        try {
+            configService.updateVpPolicy();
+        } catch (Exception e) {
+            log.error("Failed to refresh VP policies from Verifier server, returning cached data", e);
+        }
         return ResponseEntity.ok(configService.getConfig().getVpPolicies());
     }
-    @PostMapping("/current-vp-policy")
-    public ResponseEntity<?> updateCurrentVpPolicy(@RequestBody Map<String, String> body) {
-        String vpPolicyId = body.get("vpPolicyId");
-        configService.updateCurrentVpPolicy(vpPolicyId);
-        return ResponseEntity.ok().build();
-    }
-
     @PostMapping("/server-settings")
     public ResponseEntity<?> updateServerSettings(@RequestBody ServerSettingsDto dto) {
         try {

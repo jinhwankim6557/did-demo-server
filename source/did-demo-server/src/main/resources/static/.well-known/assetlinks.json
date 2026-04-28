@@ -1,0 +1,14 @@
+[
+    {
+        "relation": [
+            "delegate_permission/common.handle_all_urls"
+        ],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "com.omnione.did.demo.wallet",
+            "sha256_cert_fingerprints": [
+                "6B:62:72:F5:76:30:92:74:A0:D7:CB:0A:91:28:E7:DE:3D:E7:EE:1B:8D:11:96:5B:42:86:7F:11:68:B2:AD:FE"
+            ]
+        }
+    }
+]

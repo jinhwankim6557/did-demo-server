@@ -1,0 +1,53 @@
+{
+  "vpPolicies" : [ {
+    "policyId" : "a2b330a8-b60e-4df0-9efc-bf8131a16153",
+    "policyTitle" : "RZKP"
+  }, {
+    "policyId" : "e0a08911-9677-4792-a156-385b1f838721",
+    "policyTitle" : "SDk2Poli"
+  }, {
+    "policyId" : "d1751d31-1f34-4be2-92e7-06c17bbaaef0",
+    "policyTitle" : "SDKpolicy"
+  } ],
+  "currentVpPolicy" : "a2b330a8-b60e-4df0-9efc-bf8131a16153",
+  "vcPlans" : [ {
+    "vcPlanId" : "vcPlan001",
+    "name" : "title",
+    "description" : "desc",
+    "manager" : "did:omn:issuer"
+  }, {
+    "vcPlanId" : "VCplan002",
+    "name" : "00222",
+    "description" : "DESC",
+    "manager" : "did:omn:issuer"
+  }, {
+    "vcPlanId" : "zkpPlan11",
+    "name" : "ZKPPlan",
+    "description" : "11asdasd",
+    "manager" : "did:omn:issuer"
+  }, {
+    "vcPlanId" : "ANToZKP",
+    "name" : "ANToZKP",
+    "description" : "ANToZKP",
+    "manager" : "did:omn:issuer"
+  } ],
+  "currentVcPlan" : "ANToZKP",
+  "issuer" : "did:omn:issuer",
+  "userInfo" : {
+    "pii" : "ac1902de01bcf25a88eed0ccd22e1659bb4aff8d870d984307be18fbfa8048a2",
+    "firstname" : "a",
+    "vcSchemaIndex" : null,
+    "vcSchemaId" : "http://10.48.17.129:8091/issuer/api/v1/vc/vcschema?name=ZKPRealSchem11",
+    "vcSchemaTitle" : null,
+    "fields" : {
+      "ZKPReal23.age" : "50",
+      "ZKPReal23.add" : "50",
+      "ZKPRealSchem11.age" : "50",
+      "ZKPRealSchem11.add" : "50"
+    },
+    "userId" : "6a2e55a3",
+    "did" : "",
+    "email" : "",
+    "lastname" : "a"
+  }
+}
