@@ -338,7 +338,11 @@ public class DemoServiceImpl implements DemoService{
             }
 
             VpResultDto vpResultDto = resultBuilder.build();
-            QrImageData qrImageData = makeQrImage(vpResultDto);
+            // OID4VP: QR에는 raw openid4vp:// deeplink만 인코딩 (표준 지갑 호환)
+            // DID_VP: 기존대로 VpResultDto 전체를 JSON으로 인코딩 (OpenDID 지갑 호환)
+            QrImageData qrImageData = "OID4VP".equals(protocol)
+                    ? makeQrImageFromString(vpResultDto.getPayload())
+                    : makeQrImage(vpResultDto);
             vpResultDto.setQrImage(qrImageData.getQrIamge());
             return vpResultDto;
 

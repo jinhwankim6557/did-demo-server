@@ -24,6 +24,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,6 +33,8 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -46,6 +49,8 @@ import java.util.Map;
 public class OID4VCController {
 
     private static final String ISSUER_QR_PATH = "/qr-data/generate-qr";
+    private static final String ISSUER_METADATA_PATH = "/.well-known/openid-credential-issuer";
+    private static final String CONFIGS_KEY = "credential_configurations_supported";
     private static final int CONNECT_TIMEOUT_MS = 5000;
     private static final int READ_TIMEOUT_MS = 10000;
 
@@ -53,8 +58,8 @@ public class OID4VCController {
 
     @PostMapping("/oid4vc-offer")
     public ResponseEntity<?> proxyOfferQr(@RequestBody Map<String, Object> body) {
-        String issuerUrl = environment.getProperty("issuer.url", "");
-        if (issuerUrl.isBlank()) {
+        String origin = resolveIssuerOrigin();
+        if (origin == null) {
             log.warn("issuer.url not configured — cannot forward OID4VC offer request");
             return ResponseEntity.status(503).body(Map.of(
                     "success", false,
@@ -62,29 +67,15 @@ public class OID4VCController {
             ));
         }
 
-        String targetUrl;
-        try {
-            URI origin = URI.create(issuerUrl.trim()).resolve("/");
-            targetUrl = origin.toString().replaceAll("/$", "") + ISSUER_QR_PATH;
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid issuer.url: {}", issuerUrl, e);
-            return ResponseEntity.status(500).body(Map.of(
-                    "success", false,
-                    "message", "Invalid Issuer URL: " + issuerUrl
-            ));
-        }
-
-        RestTemplate restTemplate = new RestTemplate();
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(CONNECT_TIMEOUT_MS);
-        factory.setReadTimeout(READ_TIMEOUT_MS);
-        restTemplate.setRequestFactory(factory);
+        String targetUrl = origin + ISSUER_QR_PATH;
+        RestTemplate restTemplate = createRestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
-        log.info("Forwarding OID4VC offer → {} (userId={})", targetUrl, body.get("userId"));
+        log.info("Forwarding OID4VC offer → {} (userId={}, credentialConfigurationId={})",
+                targetUrl, body.get("userId"), body.get("credentialConfigurationId"));
 
         try {
             ResponseEntity<Object> upstream = restTemplate.postForEntity(targetUrl, request, Object.class);
@@ -103,5 +94,91 @@ public class OID4VCController {
                     "message", "Failed to reach Issuer: " + e.getMessage()
             ));
         }
+    }
+
+    /**
+     * Issuer 메타데이터({issuer}/.well-known/openid-credential-issuer)를 중계해
+     * 발급 가능한 credential_configurations_supported 의 키 목록만 추려 반환한다.
+     * 발급 대상(generate-qr)과 동일한 issuer.url 을 기준으로 조회하므로
+     * 프론트가 받은 id 값을 그대로 발급 요청에 사용할 수 있다.
+     */
+    @GetMapping("/oid4vc-metadata")
+    public ResponseEntity<?> proxyMetadata() {
+        String origin = resolveIssuerOrigin();
+        if (origin == null) {
+            log.warn("issuer.url not configured — cannot fetch OID4VC metadata");
+            return ResponseEntity.status(503).body(Map.of(
+                    "success", false,
+                    "message", "Issuer server is not configured. Set it via Server Settings."
+            ));
+        }
+
+        String targetUrl = origin + ISSUER_METADATA_PATH;
+        RestTemplate restTemplate = createRestTemplate();
+
+        log.info("Fetching OID4VC metadata → {}", targetUrl);
+
+        try {
+            ResponseEntity<Map> upstream = restTemplate.getForEntity(targetUrl, Map.class);
+            List<String> ids = extractCredentialConfigIds(upstream.getBody());
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "ids", ids
+            ));
+        } catch (HttpStatusCodeException e) {
+            log.warn("Issuer returned {} for metadata: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of(
+                    "success", false,
+                    "message", "Issuer responded with error: " + e.getStatusCode()
+            ));
+        } catch (Exception e) {
+            log.error("Failed to reach Issuer metadata at {}", targetUrl, e);
+            return ResponseEntity.status(502).body(Map.of(
+                    "success", false,
+                    "message", "Failed to reach Issuer: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * issuer.url 프로퍼티에서 origin(scheme://host:port) 을 구한다.
+     * 미설정이거나 파싱 실패 시 null.
+     */
+    private String resolveIssuerOrigin() {
+        String issuerUrl = environment.getProperty("issuer.url", "");
+        if (issuerUrl.isBlank()) {
+            return null;
+        }
+        try {
+            URI origin = URI.create(issuerUrl.trim()).resolve("/");
+            return origin.toString().replaceAll("/$", "");
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid issuer.url: {}", issuerUrl, e);
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> extractCredentialConfigIds(Map<String, Object> metadata) {
+        List<String> ids = new ArrayList<>();
+        if (metadata == null) {
+            return ids;
+        }
+        Object configs = metadata.get(CONFIGS_KEY);
+        if (configs instanceof Map<?, ?> configMap) {
+            for (Object key : configMap.keySet()) {
+                ids.add(String.valueOf(key));
+            }
+        }
+        return ids;
+    }
+
+    private RestTemplate createRestTemplate() {
+        RestTemplate restTemplate = new RestTemplate();
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(CONNECT_TIMEOUT_MS);
+        factory.setReadTimeout(READ_TIMEOUT_MS);
+        restTemplate.setRequestFactory(factory);
+        return restTemplate;
     }
 }

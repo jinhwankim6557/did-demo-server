@@ -1113,7 +1113,9 @@ async function openVCPopup() {
     try {
       
       if (!AppState.userInfo || !AppState.userInfo.firstname) {
-        alert("User information is missing. Please ensure you have completed the registration process.");
+        alert("User information is missing. Please complete your profile first.");
+        const enterInfoBtn = document.querySelector('.btn-select[data-ref="정보입력"]');
+        if (enterInfoBtn) enterInfoBtn.click();
         return;
       }
       
@@ -1455,7 +1457,7 @@ async function submitVPComplete() {
         if (externalResponse.ok) {
           const externalHTML = await externalResponse.text();
           document.getElementById("PopupArea").innerHTML = externalHTML;
-          updateSuccessDialog({ claims: [], protocol: 'OID4VP' });
+          updateSuccessDialog({ claims: status.claims || [], format: status.format, protocol: 'OID4VP' });
         }
       } else if (status.status === 'PENDING') {
         alert("Waiting for wallet to submit VP. Please scan the QR code first.");
@@ -1514,6 +1516,42 @@ async function submitVPComplete() {
   }
 }
 
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
+}
+
+// escapeHtml()은 텍스트 노드 기준이라 "(큰따옴표)는 그대로 통과한다 — title="..." 같은 속성값에
+// 그대로 넣으면 속성이 깨지거나(JSON 값은 항상 "를 포함) 속성 주입으로 이어질 수 있어 별도로 이스케이프한다.
+function escapeAttr(str) {
+  return escapeHtml(str).replace(/"/g, '&quot;');
+}
+
+// claim value가 JSON(object/array)이면 들여쓰기해서 <pre>로 보여주고, 아니면 일반 텍스트로 표시한다.
+// 팝업이 너무 길어져 confirm 버튼이 가려지지 않도록 3줄까지만 보여주고(CSS line-clamp) "..."로 자르되,
+// 데이터 자체를 숨기지 않도록 title 툴팁으로 전문을 볼 수 있게 한다.
+function formatClaimValue(rawValue) {
+  if (rawValue === null || rawValue === undefined || rawValue === '') {
+    return 'No information';
+  }
+  const str = String(rawValue);
+  const trimmed = str.trim();
+  let displayText = str;
+  let isJson = false;
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      displayText = JSON.stringify(JSON.parse(trimmed), null, 2);
+      isJson = true;
+    } catch (e) {
+      // JSON처럼 보이지만 파싱 실패 — 그냥 텍스트로 표시
+    }
+  }
+  const tag = isJson ? 'pre' : 'span';
+  const cls = isJson ? 'claim-value-json claim-value-clamp' : 'claim-value-clamp';
+  return `<${tag} class="${cls}" title="${escapeAttr(displayText)}">${escapeHtml(displayText)}</${tag}>`;
+}
+
 function updateSuccessDialog(data) {
   const infoTable = document.querySelector('.info-table');
   if (!infoTable) {
@@ -1532,12 +1570,23 @@ function updateSuccessDialog(data) {
     </tr>
   `;
 
+  if (data.format) {
+    tableHTML += `
+      <tr>
+        <th>Format</th>
+        <td>${escapeHtml(data.format)}</td>
+      </tr>
+    `;
+  }
+
   if (data.claims && Array.isArray(data.claims)) {
     data.claims.forEach(claim => {
+      const caption = escapeHtml(claim.caption);
+      const captionAttr = escapeAttr(claim.caption);
       tableHTML += `
         <tr>
-          <th>${claim.caption}</th>
-          <td>${claim.value || 'No information'}</td>
+          <th title="${captionAttr}">${caption}</th>
+          <td>${formatClaimValue(claim.value)}</td>
         </tr>
       `;
     });
@@ -1616,6 +1665,15 @@ const VC_PROTO_STEPS = {
   ],
 };
 
+const VC_PROTO_DESC = {
+  opendid:
+    '<strong>OpenDID</strong> — native flow used in the OmniOne ecosystem. ' +
+    'The wallet app scans a QR and receives the VC directly.',
+  oid4vc:
+    '<strong>OID4VC</strong> — OpenID standard flow (OID4VCI) for cross-platform interop. ' +
+    'A compliant wallet scans the QR and confirms with a 4-digit Tx Code.',
+};
+
 function renderProtoSteps(proto) {
   const container = document.getElementById('vcProtoSteps');
   if (!container) return;
@@ -1633,6 +1691,12 @@ function renderProtoSteps(proto) {
     .join('');
 }
 
+function renderProtoDesc(proto) {
+  const container = document.getElementById('vcProtoDesc');
+  if (!container) return;
+  container.innerHTML = VC_PROTO_DESC[proto] || '';
+}
+
 function handleVcProtoSelection(proto) {
   const scope = document.querySelector('.context-item[data-ref="VC 발급"]');
   if (!scope) return;
@@ -1642,7 +1706,42 @@ function handleVcProtoSelection(proto) {
   scope.querySelectorAll('.vc-proto-panel').forEach((panel) => {
     panel.classList.toggle('hidden', panel.dataset.vcProto !== proto);
   });
+  renderProtoDesc(proto);
   renderProtoSteps(proto);
+  if (proto === 'oid4vc') {
+    loadOid4vcCredentialConfigs();
+  }
+}
+
+// OID4VC: Issuer 메타데이터에서 발급 가능한 credential id 목록을 받아 select 를 채운다.
+// OID4VC Issuing 소탭 진입 시 자동 호출. Issuer 미설정/조회 실패 시 placeholder 로 안내만 한다.
+async function loadOid4vcCredentialConfigs() {
+  const select = document.getElementById('oid4vcCredentialId');
+  if (!select) return;
+
+  const prev = select.value;
+  select.innerHTML = '<option value="">Loading…</option>';
+  select.disabled = true;
+
+  try {
+    const res = await fetch('/demo/api/oid4vc-metadata');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success || !Array.isArray(data.ids) || data.ids.length === 0) {
+      const msg = (data && data.message) || 'No credentials available';
+      select.innerHTML = `<option value="">${msg}</option>`;
+      return;
+    }
+    select.innerHTML =
+      '<option value="">Select a credential</option>' +
+      data.ids.map((id) => `<option value="${id}">${id}</option>`).join('');
+    // 직전 선택값이 목록에 남아 있으면 복원
+    if (prev && data.ids.includes(prev)) select.value = prev;
+  } catch (e) {
+    console.error('Failed to load OID4VC credential configs:', e);
+    select.innerHTML = '<option value="">Failed to load — check Issuer Server</option>';
+  } finally {
+    select.disabled = false;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1654,15 +1753,16 @@ document.addEventListener('DOMContentLoaded', () => {
         handleVcProtoSelection(btn.dataset.vcProto);
       });
     });
+  renderProtoDesc('opendid');
   renderProtoSteps('opendid');
 });
 
-// Issuer 도메인은 Server Settings 의 `#issuerServer` 값을 기준으로 사용한다.
-// 저장 전 상태(form 에만 값이 있는 경우)도 수용하기 위해 AppState → input 순으로 조회.
+// Issuer 도메인은 Server Settings 의 저장값만 기준으로 사용한다.
+// 백엔드 issuer.url 은 Save 시점에만 갱신되므로(ConfigService.updateServerSettings),
+// 저장 전 input 값을 쓰면 프론트(claims-page)와 백엔드 프록시(메타/offer)가 어긋난다.
+// 따라서 항상 저장값(= issuer.url 과 동일)인 AppState 값만 사용해 일치를 보장한다.
 function getIssuerOrigin() {
-  const fromState = (AppState?.serverSettings?.issuerServer || '').trim();
-  const fromInput = (document.getElementById('issuerServer')?.value || '').trim();
-  const raw = fromState || fromInput;
+  const raw = (AppState?.serverSettings?.issuerServer || '').trim();
   if (!raw) return '';
   try {
     return new URL(raw).origin;
@@ -1704,6 +1804,14 @@ async function openOID4VCPopup() {
   if (!userId) {
     alert('Please enter User ID first.');
     if (input) input.focus();
+    return;
+  }
+
+  const credentialSelect = document.getElementById('oid4vcCredentialId');
+  const credentialConfigurationId = (credentialSelect && credentialSelect.value || '').trim();
+  if (!credentialConfigurationId) {
+    alert('Please select a credential to issue.');
+    if (credentialSelect) credentialSelect.focus();
     return;
   }
 
@@ -1786,6 +1894,9 @@ function oid4vcOfferRefresh() {
   const input = document.getElementById('oid4vcUserId');
   const userId = (input && input.value || '').trim();
 
+  const credentialSelect = document.getElementById('oid4vcCredentialId');
+  const credentialConfigurationId = (credentialSelect && credentialSelect.value || '').trim();
+
   showLoading();
 
   // 동일 오리진 프록시 엔드포인트. 서버가 Server Settings 의 Issuer URL 로 중계한다.
@@ -1794,6 +1905,7 @@ function oid4vcOfferRefresh() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       userId,
+      credentialConfigurationId,
       grantType: 'pre-authorized_code',
       offerType: 'reference',
       scheme: 'openid-credential-offer:',

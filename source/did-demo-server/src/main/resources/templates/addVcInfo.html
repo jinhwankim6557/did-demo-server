@@ -228,80 +228,67 @@
     fields: dynamicFields
   };  
 
-  try {
-    document.getElementById('loadingOverlay').style.display = 'flex';
+  document.getElementById('loadingOverlay').style.display = 'flex';
 
-    const response = await fetch('/demo/api/save-user-info', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data)    
-      }).then(response => {
-            if (!response.ok) {
-                return response.json().then(err => { throw err; });
-            }
-            return response.json();
-        })
-        .then(data => {                        
-           
-            if (document.getElementById('loadingOverlay')) {
-                document.getElementById('loadingOverlay').style.display = 'none';
-            }
+  fetch('/demo/api/save-user-info', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data)
+    }).then(response => {
+          if (!response.ok) {
+              return response.json().then(err => { throw err; });
+          }
+          return response.json();
+      })
+      .then(data => {
 
-            if (isMobile.any()) {
-                if (isMobile.Android()) {
-                    
-                    if (window.android) {
-                        window.android.onCompletedAddVcUpload();
-                    }
-                } else if (isMobile.iOS()) {
-                   
-                    alert('information has been saved');
-                    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.onCompletedAddVcUpload) {
-                        window.webkit.messageHandlers.onCompletedAddVcUpload.postMessage("success");
-                    }
-                }
-            } else {
-                alert('information has been saved');
-            }
-        })
-        .catch(error => {         
-            console.error(error);
+          if (document.getElementById('loadingOverlay')) {
+              document.getElementById('loadingOverlay').style.display = 'none';
+          }
 
-            if (document.getElementById('loadingOverlay')) {
-                document.getElementById('loadingOverlay').style.display = 'none';
-            }
+          if (isMobile.any()) {
+              if (isMobile.Android()) {
 
-            if (isMobile.any()) {
-                if (isMobile.Android()) {
-                    
-                    if (window.android) {
-                        window.android.onFailedAddVcUpload();
-                    }
-                } else if (isMobile.iOS()) {
-                   
-                    alert('Failed to save ID information');
-                    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.onFailedAddVcUpload) {
-                        window.webkit.messageHandlers.onFailedAddVcUpload.postMessage("failed");
-                    }
-                }
-            } else {
-                alert(error.message || 'Failed to save ID information');
-            }
-        });
+                  if (window.android) {
+                      window.android.onCompletedAddVcUpload();
+                  }
+              } else if (isMobile.iOS()) {
 
-      if (!response.ok) {
-        throw new Error('Failed to save VC information');
-      }
+                  alert('information has been saved');
+                  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.onCompletedAddVcUpload) {
+                      window.webkit.messageHandlers.onCompletedAddVcUpload.postMessage("success");
+                  }
+              }
+          } else {
+              alert('information has been saved');
+          }
+      })
+      .catch(error => {
+          console.error(error);
 
-    } catch (error) {
-      console.error('Error saving VC information:', error);
-      alert('Failed to save information. Please try again.');
-    } finally {
-     
-      document.getElementById('loadingOverlay').style.display = 'none';
-    }
+          if (document.getElementById('loadingOverlay')) {
+              document.getElementById('loadingOverlay').style.display = 'none';
+          }
+
+          if (isMobile.any()) {
+              if (isMobile.Android()) {
+
+                  if (window.android) {
+                      window.android.onFailedAddVcUpload();
+                  }
+              } else if (isMobile.iOS()) {
+
+                  alert('Failed to save ID information');
+                  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.onFailedAddVcUpload) {
+                      window.webkit.messageHandlers.onFailedAddVcUpload.postMessage("failed");
+                  }
+              }
+          } else {
+              alert(error.message || 'Failed to save ID information');
+          }
+      });
   }
 
 

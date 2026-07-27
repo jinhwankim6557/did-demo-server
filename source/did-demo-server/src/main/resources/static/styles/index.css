@@ -796,10 +796,38 @@ i.icons svg {
 #Dialog-VPSuccess .modal-body .info-table table th {
   font-weight: 700;
   color: #1a1a1a;
+  max-width: 6.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 #Dialog-Success .modal-body .info-table table td,
 #Dialog-VPSuccess .modal-body .info-table table td {
   color: #444444;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+#Dialog-Success .modal-body .info-table table td .claim-value-json,
+#Dialog-VPSuccess .modal-body .info-table table td .claim-value-json {
+  margin: 0;
+  padding: 0.5rem;
+  background: #ffffff;
+  border: 1px solid #efefef;
+  border-radius: 0.375rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+#Dialog-Success .modal-body .info-table table td .claim-value-clamp,
+#Dialog-VPSuccess .modal-body .info-table table td .claim-value-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  cursor: help;
 }
 #Dialog-Success .modal-body .info-table table th,
 #Dialog-Success .modal-body .info-table table td,

@@ -49,6 +49,21 @@ public class QrMaker {
         return qrImageData;
     }
 
+    /**
+     * 문자열을 JSON 직렬화 없이 그대로 QR에 인코딩한다.
+     * OID4VP의 raw openid4vp:// deeplink처럼 콘텐츠 자체를 QR에 담아야 할 때 사용한다.
+     */
+    public static QrImageData makeQrImageFromString(final String contents) throws IOException, WriterException {
+        byte[] qrImage = makeQrImage(contents, DEFAULT_IMAGE_FORMAT, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+
+        QrImageData qrImageData = new QrImageData();
+        qrImageData.setFormat("image");
+        qrImageData.setMediaType(DEFAULT_IMAGE_FORMAT);
+        qrImageData.setQrIamge(qrImage);
+
+        return qrImageData;
+    }
+
     public static byte[] makeQrImage(final String contents, final String format, int width, int height) throws IOException, WriterException {
         BitMatrix bitMatrix = makeQrBitMatrix(contents, width, height);
 

@@ -766,9 +766,37 @@ i.icons {
         th {
           font-weight: 700;
           color: $G90;
+          max-width: 6.25rem;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         td {
           color: $G70;
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          .claim-value-json {
+            margin: 0;
+            padding: 0.5rem;
+            background: #ffffff;
+            border: 1px solid $G20;
+            border-radius: 0.375rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+          }
+          // 팝업이 화면을 넘겨 confirm 버튼이 가려지지 않도록 값은 3줄까지만 보여주고 나머지는
+          // "..."로 자른다 — 대신 title 툴팁(formatClaimValue)으로 전문을 볼 수 있게 한다.
+          .claim-value-clamp {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 3;
+            overflow: hidden;
+            cursor: help;
+          }
         }
         th,
         td {
