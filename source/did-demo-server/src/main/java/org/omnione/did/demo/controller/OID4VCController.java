@@ -53,6 +53,10 @@ public class OID4VCController {
     private static final String CONFIGS_KEY = "credential_configurations_supported";
     private static final int CONNECT_TIMEOUT_MS = 5000;
     private static final int READ_TIMEOUT_MS = 10000;
+    private static final String ISSUER_UNAVAILABLE_MSG =
+            "Cannot reach the Issuer server — check that it is running";
+    private static final String ISSUER_NOT_CONFIGURED_MSG =
+            "Issuer server is not configured — set it in Server Settings";
 
     private final Environment environment;
 
@@ -63,7 +67,8 @@ public class OID4VCController {
             log.warn("issuer.url not configured — cannot forward OID4VC offer request");
             return ResponseEntity.status(503).body(Map.of(
                     "success", false,
-                    "message", "Issuer server is not configured. Set it via Server Settings."
+                    "error", "ISSUER_NOT_CONFIGURED",
+                    "message", ISSUER_NOT_CONFIGURED_MSG
             ));
         }
 
@@ -84,15 +89,13 @@ public class OID4VCController {
             log.warn("Issuer returned {} for OID4VC offer: {}", e.getStatusCode(), e.getResponseBodyAsString());
             return ResponseEntity.status(e.getStatusCode()).body(Map.of(
                     "success", false,
+                    "error", "ISSUER_ERROR",
                     "message", "Issuer responded with error: " + e.getStatusCode(),
                     "upstreamBody", e.getResponseBodyAsString()
             ));
         } catch (Exception e) {
             log.error("Failed to reach Issuer at {}", targetUrl, e);
-            return ResponseEntity.status(502).body(Map.of(
-                    "success", false,
-                    "message", "Failed to reach Issuer: " + e.getMessage()
-            ));
+            return ResponseEntity.status(502).body(unavailableBody(origin, e));
         }
     }
 
@@ -109,7 +112,8 @@ public class OID4VCController {
             log.warn("issuer.url not configured — cannot fetch OID4VC metadata");
             return ResponseEntity.status(503).body(Map.of(
                     "success", false,
-                    "message", "Issuer server is not configured. Set it via Server Settings."
+                    "error", "ISSUER_NOT_CONFIGURED",
+                    "message", ISSUER_NOT_CONFIGURED_MSG
             ));
         }
 
@@ -129,15 +133,29 @@ public class OID4VCController {
             log.warn("Issuer returned {} for metadata: {}", e.getStatusCode(), e.getResponseBodyAsString());
             return ResponseEntity.status(e.getStatusCode()).body(Map.of(
                     "success", false,
+                    "error", "ISSUER_ERROR",
                     "message", "Issuer responded with error: " + e.getStatusCode()
             ));
         } catch (Exception e) {
             log.error("Failed to reach Issuer metadata at {}", targetUrl, e);
-            return ResponseEntity.status(502).body(Map.of(
-                    "success", false,
-                    "message", "Failed to reach Issuer: " + e.getMessage()
-            ));
+            return ResponseEntity.status(502).body(unavailableBody(origin, e));
         }
+    }
+
+    /**
+     * Issuer 도달 실패 응답 바디.
+     * message 는 그대로 UI(셀렉트 박스 등)에 노출되므로 짧은 안내 문구만 담고,
+     * raw 예외 문자열은 detail 로 분리해 콘솔/디버깅용으로만 쓰이게 한다.
+     */
+    private Map<String, Object> unavailableBody(String issuerUrl, Exception e) {
+        String detail = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+        return Map.of(
+                "success", false,
+                "error", "ISSUER_UNAVAILABLE",
+                "message", ISSUER_UNAVAILABLE_MSG,
+                "issuerUrl", issuerUrl,
+                "detail", detail
+        );
     }
 
     /**

@@ -1750,8 +1750,17 @@ async function loadOid4vcCredentialConfigs() {
     const res = await fetch('/demo/api/oid4vc-metadata');
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.success || !Array.isArray(data.ids) || data.ids.length === 0) {
+      // 서버가 주는 message 는 사람이 읽을 안내 문구. raw 예외는 detail 로만 오므로
+      // 셀렉트에는 안내만 넣고 기술적 원인은 콘솔/툴팁으로 돌린다.
       const msg = (data && data.message) || 'No credentials available';
-      select.innerHTML = `<option value="">${msg}</option>`;
+      if (data && data.detail) {
+        console.error('OID4VC metadata load failed:', data.error, data.issuerUrl, data.detail);
+      }
+      // issuerUrl 은 Server Settings 에서 사용자가 넣는 값이라 innerHTML 대신 DOM 속성으로 세팅
+      select.innerHTML = '<option value=""></option>';
+      const opt = select.options[0];
+      opt.textContent = msg;
+      if (data && data.issuerUrl) opt.title = 'Issuer URL: ' + data.issuerUrl;
       return;
     }
     select.innerHTML =
@@ -1761,7 +1770,7 @@ async function loadOid4vcCredentialConfigs() {
     if (prev && data.ids.includes(prev)) select.value = prev;
   } catch (e) {
     console.error('Failed to load OID4VC credential configs:', e);
-    select.innerHTML = '<option value="">Failed to load — check Issuer Server</option>';
+    select.innerHTML = '<option value="">Cannot reach the Demo server — check that it is running</option>';
   } finally {
     select.disabled = false;
   }
@@ -1934,8 +1943,17 @@ function oid4vcOfferRefresh() {
       scheme: 'openid-credential-offer:',
     }),
   })
-    .then((response) => {
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    .then(async (response) => {
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        if (err.detail) {
+          console.error('OID4VC offer failed:', err.error, err.issuerUrl, err.detail);
+        }
+        // 서버가 준 안내 문구는 그대로 보여주고, 그 외 예외는 아래 catch 의 일반 문구로
+        const userError = new Error(err.message || `HTTP ${response.status}`);
+        userError.userFacing = true;
+        throw userError;
+      }
       return response.json();
     })
     .then((data) => {
@@ -1987,7 +2005,9 @@ function oid4vcOfferRefresh() {
       if (responseTextArea) {
         responseTextArea.value = 'Error: ' + error;
       }
-      alert('Failed to generate OID4VC QR. Check console for details.');
+      alert(error.userFacing
+        ? error.message
+        : 'Failed to generate OID4VC QR. Check console for details.');
     });
 }
 
