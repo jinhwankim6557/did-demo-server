@@ -1,6 +1,9 @@
 
 // Cached VP policies (loaded on page init)
 let cachedVpPolicies = [];
+// Set when the last policy load failed, so we can tell "no policies registered"
+// apart from "Verifier server unreachable"
+let vpPolicyLoadError = null;
 
 const AppState = {
   userInfo: null,
@@ -24,12 +27,23 @@ const AppState = {
   },
 
   async loadVpPolicies() {
+    vpPolicyLoadError = null;
     try {
       const response = await fetch('/demo/api/vp-policies');
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('VP policies API error:', response.status, errorText);
-        throw new Error('Failed to fetch VP policies: ' + response.status);
+        let detail = null;
+        try {
+          detail = await response.json();
+        } catch (parseError) {
+          // non-JSON error body, fall back to the generic message below
+        }
+        console.error('VP policies API error:', response.status, detail);
+        vpPolicyLoadError = {
+          message: (detail && detail.message) || ('Failed to fetch VP policies (HTTP ' + response.status + ').'),
+          verifierUrl: detail && detail.verifierUrl
+        };
+        cachedVpPolicies = [];
+        return [];
       }
       const data = await response.json();
       console.log('VP policies loaded:', data);
@@ -37,6 +51,7 @@ const AppState = {
       return cachedVpPolicies;
     } catch (error) {
       console.error('Error fetching VP policies:', error);
+      vpPolicyLoadError = { message: 'Cannot reach the Demo server. Please check that it is running.' };
       cachedVpPolicies = [];
       return [];
     }
@@ -1190,8 +1205,16 @@ async function openVPPopup() {
   await AppState.loadVpPolicies();
   hideLoading();
 
+  if (vpPolicyLoadError) {
+    const urlHint = vpPolicyLoadError.verifierUrl
+      ? '\n\nVerifier URL: ' + vpPolicyLoadError.verifierUrl
+      : '';
+    alert(vpPolicyLoadError.message + urlHint);
+    return;
+  }
+
   if (cachedVpPolicies.length === 0) {
-    alert('No policies available. Please register policies in the Admin console first.\n\nCheck browser console (F12) for error details.');
+    alert('No policies available. Please register policies in the Admin console first.');
     return;
   }
 

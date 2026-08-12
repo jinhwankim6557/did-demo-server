@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.omnione.did.base.config.ConfigService;
 import org.omnione.did.demo.dto.ServerSettingsDto;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.bind.annotation.*;
@@ -40,10 +41,19 @@ public class ConfigController {
     }
     @GetMapping("/vp-policies")
     public ResponseEntity<?> getVpPolicies() {
+        String verifierUrl = configService.getCurrentServerUrls().get("verifierServer");
         try {
             configService.updateVpPolicy();
         } catch (Exception e) {
-            log.error("Failed to refresh VP policies from Verifier server, returning cached data", e);
+            // Serving the locally cached list would hide the outage: the policies would render
+            // but every QR / VP request against them fails later on. Surface it here instead.
+            log.error("Failed to fetch VP policies from Verifier server ({})", verifierUrl, e);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of(
+                    "error", "VERIFIER_UNAVAILABLE",
+                    "message", "Cannot reach the Verifier server. Make sure it is running and that the "
+                            + "Verifier URL in Server Settings is correct.",
+                    "verifierUrl", verifierUrl == null ? "" : verifierUrl
+            ));
         }
         return ResponseEntity.ok(configService.getConfig().getVpPolicies());
     }
